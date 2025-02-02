@@ -40,9 +40,6 @@ export default function Home() {
     startTransition(() => {
       dispatch();
     });
-    if (state) {
-      setTimer(state.duration * 60);
-    }
   };
 
   const handleScore = (value: number) => {
@@ -70,12 +67,16 @@ export default function Home() {
 
   useEffect(() => {
     if (!start) return;
+    if (timer <= 0) {
+      setTimer(state.duration * 60);
+    }
+    if (!state) return;
 
     const quizTimerInterval = setInterval(() => {
       setTimer((prevQuizTimer) => {
         if (prevQuizTimer <= 0) {
           clearInterval(quizTimerInterval);
-          handleDone();
+          // handleDone();
         }
         return prevQuizTimer - 1;
       });
@@ -139,9 +140,13 @@ export default function Home() {
                         <h2 className="text-white text-lg">
                           {state.description}
                         </h2>
-                        {/* <h3 className="text-white text-lg">
-                          Time Remaining: 13:12
-                        </h3> */}
+                        <h3 className="text-white text-lg">
+                          Time Remaining:{" "}
+                          {Math.floor(timer / 60) +
+                            ":" +
+                            (timer % 60 < 10 ? "0" : "") +
+                            (timer % 60)}
+                        </h3>
                         <h1 className="text-white text-xl text-right">
                           Score: {score}
                         </h1>
