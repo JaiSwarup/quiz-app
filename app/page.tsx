@@ -1,101 +1,208 @@
-import Image from "next/image";
+"use client";
+import { useEffect, useState, useTransition } from "react";
+import { Loader2 } from "lucide-react";
+import { useActionState } from "react";
+import fetchQuiz from "@/actions/fetchQuiz";
+import { Button } from "@/components/ui/button";
 
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from "@/components/ui/card";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+  type CarouselApi,
+} from "@/components/ui/carousel";
+import { Badge } from "@/components/ui/badge";
+import Question from "@/components/question";
+import { Progress } from "@/components/ui/progress";
+// import { useRef, useEffect, useTransition } from "react";
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const initialState = {};
+  const [isPending, startTransition] = useTransition();
+  const [count, setCount] = useState(0);
+  const [current, setCurrent] = useState(0);
+  const [score, setScore] = useState(0.0);
+  const [done, setDone] = useState(false);
+  const [timer, setTimer] = useState(0);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const [start, setStart] = useState(false);
+
+  const [state, dispatch] = useActionState(fetchQuiz, initialState);
+
+  const handleClick = async () => {
+    startTransition(() => {
+      dispatch();
+    });
+    if (state) {
+      setTimer(state.duration * 60);
+    }
+  };
+
+  const handleScore = (value: number) => {
+    setScore(score + value);
+  };
+
+  const handleDone = () => {
+    console.log("done");
+    setDone(true);
+  };
+
+  const [api, setApi] = useState<CarouselApi>();
+
+  useEffect(() => {
+    if (!api) {
+      return;
+    }
+    setCount(api.scrollSnapList().length);
+    setCurrent(api.selectedScrollSnap() + 1);
+
+    api.on("select", () => {
+      setCurrent(api.selectedScrollSnap() + 1);
+    });
+  }, [api]);
+
+  useEffect(() => {
+    if (!start) return;
+
+    const quizTimerInterval = setInterval(() => {
+      setTimer((prevQuizTimer) => {
+        if (prevQuizTimer <= 0) {
+          clearInterval(quizTimerInterval);
+          handleDone();
+        }
+        return prevQuizTimer - 1;
+      });
+    }, 1000);
+    return () => clearInterval(quizTimerInterval); // Clean up interval on unmount
+  }, [start]);
+
+  return (
+    <div className="relative overflow-hidden h-screen">
+      <div
+        aria-hidden="true"
+        className="flex absolute -top-0 start-1/2 transform -translate-x-1/2"
+      >
+        <div className="bg-gradient-to-r from-foreground to-foreground/50 blur-3xl w-[25rem] h-[44rem] rotate-[-60deg] transform -translate-x-[10rem]" />
+        <div className="bg-gradient-to-tl blur-3xl w-[90rem] h-[50rem] rounded-full origin-top-left -rotate-12 -translate-x-[15rem] from-foreground via-foreground to-background" />
+      </div>
+      <div className="relative z-10 h-full">
+        <div className="container h-full">
+          <div className="max-w-2xl text-center mx-auto h-full mt-16">
+            {done ? (
+              <h1 className="text-4xl text-white">
+                Your Final Score is: {score}
+              </h1>
+            ) : (
+              <>
+                {Object.keys(state).length !== 0 ? (
+                  <>
+                    {!start ? (
+                      <Card className="h-1/2">
+                        <CardHeader className="text-left justify-self-start">
+                          <Badge className="">{state.topic}</Badge>
+                        </CardHeader>
+                        <CardContent className="flex-col">
+                          <h1 className="text-4xl">{state.title}</h1>
+                          <p>
+                            Marks for correct answer:{" "}
+                            <span className="text-green-500">
+                              +{state.correct_answer_marks}
+                            </span>
+                          </p>
+                          <p>
+                            Marks for correct answer:{" "}
+                            <span className="text-red-500">
+                              -{state.negative_marks}
+                            </span>
+                          </p>
+                          <p>
+                            Total Questions:{" "}
+                            <span className="text-blue-500">
+                              {state.questions_count}
+                            </span>
+                          </p>
+                        </CardContent>
+                        <CardFooter className="flex justify-center">
+                          <Button onClick={() => setStart(true)}>Begin</Button>
+                        </CardFooter>
+                      </Card>
+                    ) : (
+                      <div className="">
+                        <h1 className="text-white text-4xl">{state.title}</h1>
+                        <h2 className="text-white text-lg">
+                          {state.description}
+                        </h2>
+                        {/* <h3 className="text-white text-lg">
+                          Time Remaining: 13:12
+                        </h3> */}
+                        <h1 className="text-white text-xl text-right">
+                          Score: {score}
+                        </h1>
+                        <Progress
+                          value={(current / count) * 100}
+                          className="my-10"
+                        />
+                        <Carousel setApi={setApi}>
+                          <CarouselContent>
+                            {state.questions.map(
+                              (question: any, index: number) => (
+                                <CarouselItem key={index}>
+                                  <Question
+                                    {...question}
+                                    handleScore={handleScore}
+                                    handleDone={handleDone}
+                                    isLast={
+                                      index === state.questions.length - 1
+                                    }
+                                  />
+                                </CarouselItem>
+                              )
+                            )}
+                          </CarouselContent>
+                          <CarouselNext className="text-black" />
+                        </Carousel>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <Card className="h-1/2">
+                    {/* Title */}
+                    <div className="mt-5 max-w-2xl">
+                      <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl">
+                        Quiz App
+                      </h1>
+                    </div>
+                    {/* End Title */}
+                    <div className="mt-5 max-w-3xl">
+                      <p className="text-xl text-muted-foreground">
+                        Test your knowledge with this quiz app. Click the button
+                        to start
+                      </p>
+                    </div>
+                    <Button onClick={handleClick} className="mt-5">
+                      {isPending ? (
+                        <div>
+                          <Loader2 className=" animate-spin" />
+                          <span className="sr-only">Loading</span>
+                        </div>
+                      ) : (
+                        "Start"
+                      )}
+                    </Button>
+                  </Card>
+                )}
+              </>
+            )}
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </div>
     </div>
   );
 }
