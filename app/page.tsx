@@ -16,7 +16,6 @@ import {
   CarouselContent,
   CarouselItem,
   CarouselNext,
-  CarouselPrevious,
   type CarouselApi,
 } from "@/components/ui/carousel";
 import { Badge } from "@/components/ui/badge";
@@ -82,7 +81,7 @@ export default function Home() {
       });
     }, 1000);
     return () => clearInterval(quizTimerInterval); // Clean up interval on unmount
-  }, [start]);
+  }, [start, state, timer]);
 
   return (
     <div className="relative overflow-hidden h-screen">
